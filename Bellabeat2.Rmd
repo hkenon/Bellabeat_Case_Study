@@ -1,0 +1,200 @@
+## Introduction
+
+Founded in 2013, Bellabeat, a high-tech company that collects data on activity, sleep, stress and reproductive health has allowed the company to empower women with knowledge about their health and habits. Bellabeat has grown rapidly and quickly has been solidified as a tech-driven wellness company for women.
+
+## Business Task
+
+Smart device usage data needs to be analyzed to gain further insight into how customers use non-Bellabeat smart devices.
+
+
+1. What are some trends in smart device usage?
+2. How could these trends apply to Bellabeat customers?
+3. How could these trends help influence Bellabeat marketing strategy?
+
+##### **Key Stakeholders**
+- Urška Sršen: Bellabeat’s cofounder and Chief Creative Officer
+- Sando Mur: Mathematician and Bellabeat’s cofounder; key member of the Bellabeat executive team
+
+
+## Installing Packages
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+``` 
+## Importing CSV Files
+
+
+##### **Renaming data sets.**
+
+- activity <- dailyActivity
+- weight <- weightLogInfo
+- sleep <- sleepDay
+- calories <- hourlyCalories
+- intensities <- dailyIntensities
+
+
+``` {r}
+activity <- read.csv("C:/Users/hkeno/Downloads/FitBit Fitness Tracker Data/Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv")
+weight <- read.csv("C:/Users/hkeno/Downloads/FitBit Fitness Tracker Data/Fitabase Data 4.12.16-5.12.16/weightLogInfo_merged.csv")
+sleep <- read.csv("C:/Users/hkeno/Downloads/FitBit Fitness Tracker Data/Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv")
+calories <- read.csv("C:/Users/hkeno/Downloads/FitBit Fitness Tracker Data/Fitabase Data 4.12.16-5.12.16/hourlyCalories_merged.csv")
+intensities <- read.csv("C:/Users/hkeno/Downloads/FitBit Fitness Tracker Data/Fitabase Data 4.12.16-5.12.16/dailyIntensities_merged.csv")
+```
+
+
+Data utilized: [FitBit Fitness Tracker Data](https://www.kaggle.com/arashnic/fitbit) from [Mobius](https://www.kaggle.com/arashnic)
+
+
+## Cleaning Data 
+ 
+There are a few corrections that needs to be made to a few data sets that include time stamps. *Sleep, Calories, Weight.*
+
+```{r}
+# Sleep
+
+sleep$SleepDay=as.POSIXct(sleep$SleepDay, format="%m/%d/%Y %I:%M:%S %p", tz=Sys.timezone())
+sleep$date <- format(sleep$SleepDay, format = "%m/%d/%y")
+
+#Calories
+
+calories$ActivityHour=as.POSIXct(calories$ActivityHour, format="%m/%d/%Y %I:%M:%S %p", tz=Sys.timezone())
+calories$time <- format(calories$ActivityHour, format = "%H:%M:%S")
+calories$date <- format(calories$ActivityHour, format = "%m/%d/%y")
+
+#Weight
+
+weight$Date=as.POSIXct(weight$Date, format="%m/%d/%Y %I:%M:%S %p", tz=Sys.timezone())
+weight$date <- format(weight$Date, format = "%m/%d/%y")
+```
+
+## Reviewing Key Data
+
+Let's take a look at the activity data
+
+```{r}
+head(activity)
+```
+
+Identifying column names 
+
+```{r}
+colnames(activity)
+```
+
+Taking a look at the sleep data
+
+```{r}
+head(sleep)
+```
+
+Identifying column names
+
+```{r}
+colnames(sleep)
+```
+Noticing that the sleep and activity data sets both have 'Id' fields, we can utilize this information later to merge data sets.
+
+## Exploring Data 
+
+```{r}
+# Number of participants in each data set.
+
+n_distinct(activity$Id)
+n_distinct(sleep$Id)
+n_distinct(weight$Id)
+n_distinct(calories$Id)
+n_distinct(intensities$Id)
+```
+Looking at the information given, there are 33 participants in the intensities, activity and calories data sets. Only 8 in the weight data set and 24 in the sleep data set. These data sets have the largest inconsistencies which could affect the outcome of this analysis.
+
+
+## Summarizing Statistics 
+
+```{r}
+activity %>%
+  select(TotalSteps, 
+         TotalDistance, 
+         SedentaryMinutes) %>%
+  summary()
+
+sleep %>%
+  select(TotalSleepRecords,
+         TotalMinutesAsleep,
+         TotalTimeInBed) %>%
+  summary()
+
+weight %>%
+  select(BMI,
+         WeightKg) %>%
+  summary()
+```
+
+## Data Merging
+
+```{r}
+merged_data <- inner_join(sleep, activity, by=c('Id'))
+n_distinct(merged_data$Id)
+```
+
+```{r}
+head(merged_data)
+```
+
+## Plotting
+
+```{r}
+ggplot(data=activity, aes(x=TotalSteps, y=SedentaryMinutes)) + geom_point(color='blue') + labs(title = "Total Steps vs Sedentary Minutes")
+```
+
+Looking at the relationship between Total Steps and Sedentary Minutes, there seems to be a negative correlation. 
+
+```{r}
+ggplot(data=sleep, aes(x=TotalTimeInBed, y=TotalMinutesAsleep)) + geom_point() + geom_smooth() + labs(title = "Total Time In Bed vs Total Minutes Asleep")
+```
+
+Here, we can see that the relationship between Total Time in Bed and Total Minutes Asleep are practically linear considering a drop off in Total time in Bed. 
+
+```{r}
+ggplot(data=activity, aes(x=TotalSteps, y=Calories)) + 
+  geom_point() + geom_smooth() + labs(title="Total Steps vs. Calories")
+```
+
+Let's take a glance at the Total Steps vs Calories visual. By observing the apparent information, we can see that there is a positive correlation between them, as the more steps you take, the more calories you burn.
+
+```{r}
+ggplot(data=merged_data, aes(x=VeryActiveMinutes, y=Calories)) + 
+geom_point(color='darkblue') + geom_smooth() +
+  labs(title="Calories vs. Very Active Minutes")
+```
+
+## Conclusion
+
+Reviewing our analysis, it is comprehensible that there is a tendency in people who are far more sedentary, are not as physically active. A person who is more active will have a positive relationship to sleep quality. 
+
+- A person that is not as active has a positive correlation to a higher BMI.
+- The more calories burned are in direct relation to a person with higher active minutes.
+- A potential marketing strategy for women that are not as active, is one could still burn calories without committing to high intensity workouts.
+
+## Recommendations
+
+As we reassess the information from the introduction, we know that the Bellabeat app provides users with health data related to their activity, sleep, stress, menstrual cycle, and mindfulness habits. This data can help users better understand their current habits and
+make healthy decisions.
+
+##### **Key Ideas**
+
+1. Bellabeat could include an app function to notify users of sedentary time periods. Letting a user know when to stand, stretch and/or take deep breaths could motivate a user to be more active.
+
+2. Another key element could be a variety of different workouts. From walking, running and swimming to making their Leaf tracker water proof to appeal new customers and as a budding upgrade to previous users.
+
+3. Since sleep quality factors in with health in general, Bellabeat could increase their potential by adding to the sleep feature by creating a schedule for the user that could stay consistent to the users sleep goals.
+
+4. Lastly, constructing capabilities for all ages would be an efficient tool for marketing. Applying high and low heart rate notifications and fall detection would add an extra boost to the company in the global smart device market.
+
+**ANY** recommendations to my Bellabeat Case Study using R would be greatly appreciated!
+
+### **THANK YOU!** 
+
